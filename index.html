@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="vt-selfhosted" content="1">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>versetype · scripture typing</title>
+<title>bibletyper · scripture typing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -12,15 +12,15 @@
 /* VOICE: quiet, reverent, focused: a typing desk with nothing in the way of the words
    IDEA: a scribe's copying page; the passage is the whole screen, copied word by word
    PICTURE: the passage itself, wide and large, three lines at a time, a tan caret moving through it
-   COLOUR and TYPE: olive garden palette: deep green ground, cream ink, tan caret, rust errors; Roboto Mono + Cormorant Garamond
+   COLOUR and TYPE: neutral palette: charcoal ground, warm ink, gold accent, rust errors; Roboto Mono + Cormorant Garamond
    LAYOUT: header, one row of config pills, centred passage, results replace the passage, key hints in the footer */
 :root{color-scheme:dark;
-  --bg:light-dark(#FEFAE0,#283618);
-  --panel:light-dark(#f3edcb,#1f2b12);
-  --sub:light-dark(#9fa37f,#7d8a4c);
-  --ink:light-dark(#283618,#FEFAE0);
-  --main:light-dark(#BC6C25,#DDA15E);
-  --olive:#606C38;
+  --bg:light-dark(#f4f4f0,#2a2622);
+  --panel:light-dark(#e8e8e4,#221e1a);
+  --sub:light-dark(#888888,#a09890);
+  --ink:light-dark(#222222,#eae8e0);
+  --main:light-dark(#b07030,#d4a96a);
+  --olive:#888;
   --err:light-dark(#b5541a,#e0884a);
   --errx:light-dark(#d9a07a,#9a5a26);
   --mono:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -166,9 +166,9 @@ kbd{font:11px var(--mono);background:var(--sub);color:var(--bg);border-radius:4p
 </head>
 <body>
 <header class="wrap">
-  <a class="logo" href="#" onclick="return false" aria-label="versetype">
+  <a class="logo" href="#" onclick="return false" aria-label="bibletyper">
     <svg viewBox="0 0 40 30" aria-hidden="true"><path d="M20 6C15 2 8 2 3 4v22c5-2 12-2 17 2 5-4 12-4 17-2V4c-5-2-12-2-17 2Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M20 6v22M8 10h7M8 15h7M25 10h7M25 15h7M25 20h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <div><b>versetype</b><small>type the word, word by word</small></div>
+    <div><b>bibletyper</b><small>type the word, word by word</small></div>
   </a>
 </header>
 
