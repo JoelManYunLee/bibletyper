@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="vt-selfhosted" content="1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>versetype · scripture typing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* VOICE: quiet, reverent, focused: a typing desk with nothing in the way of the words
+   IDEA: a scribe's copying page; the passage is the whole screen, copied word by word
+   PICTURE: the passage itself, wide and large, three lines at a time, a tan caret moving through it
+   COLOUR and TYPE: olive garden palette: deep green ground, cream ink, tan caret, rust errors; Roboto Mono + Cormorant Garamond
+   LAYOUT: header, one row of config pills, centred passage, results replace the passage, key hints in the footer */
+:root{color-scheme:dark;
+  --bg:light-dark(#FEFAE0,#283618);
+  --panel:light-dark(#f3edcb,#1f2b12);
+  --sub:light-dark(#9fa37f,#7d8a4c);
+  --ink:light-dark(#283618,#FEFAE0);
+  --main:light-dark(#BC6C25,#DDA15E);
+  --olive:#606C38;
+  --err:light-dark(#b5541a,#e0884a);
+  --errx:light-dark(#d9a07a,#9a5a26);
+  --mono:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+  --serif:"Cormorant Garamond",Georgia,serif}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--mono);overflow-x:clip;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:8px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--main);outline-offset:2px}
+svg.i{width:1em;height:1em;vertical-align:-.12em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.wrap{width:100%;max-width:1440px;margin:0 auto;padding:0 clamp(16px,4vw,64px)}
+
+header{padding-top:28px}
+.logo{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}
+.logo svg{width:40px;height:30px;color:var(--main)}
+.logo b{font:600 34px/1 var(--serif);letter-spacing:.01em}
+.logo small{display:block;font:12px var(--mono);color:var(--sub);margin-top:2px}
+
+#config{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:26px auto 0}
+.grp{display:flex;flex-wrap:wrap;align-items:center;background:var(--panel);border-radius:10px;padding:4px 8px}
+.grp button{color:var(--sub);padding:8px 10px;font-size:13px;min-height:36px;transition:color .15s}
+.grp button:hover{color:var(--ink)}
+.grp button.on{color:var(--main)}
+.grp button:disabled{opacity:.4;cursor:default}
+.sel{position:relative;padding:4px 4px 4px 8px}
+.sel select{appearance:none;-webkit-appearance:none;background:transparent;border:0;color:var(--main);font:13px var(--mono);padding:8px 30px 8px 10px;min-height:36px;border-radius:8px;cursor:pointer;max-width:260px;text-overflow:ellipsis}
+.sel select:hover{color:var(--ink)}
+.sel select:focus-visible{outline:2px solid var(--main);outline-offset:0}
+.sel select option,.sel select optgroup{background:var(--bg);color:var(--ink);font:14px var(--mono)}
+.sel svg{position:absolute;right:14px;top:50%;margin-top:-.5em;color:var(--sub);pointer-events:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.msgline{color:var(--sub);font-size:17px;line-height:1.6;max-width:70ch}
+.copy{text-align:center;color:var(--sub);font-size:11px;line-height:1.5;margin:10px auto 0;max-width:90ch;opacity:.85}
+.copy a{color:inherit}
+.klist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 16px;max-height:280px;overflow:auto;margin-top:6px}
+.klist label{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--ink);min-height:36px;cursor:pointer}
+.klist input{width:18px;height:18px;flex:none;accent-color:var(--olive)}
+.klist small{color:var(--sub)}
+.ok{color:var(--main)}
+.sheet a{color:var(--main)}
+
+main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 0}
+#test,#result{width:100%}
+.ref{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--sub);font:italic 500 22px/1.2 var(--serif);margin-bottom:14px;text-align:center}
+.ref svg{flex:none;color:var(--olive)}
+#live{height:32px;display:flex;gap:28px;color:var(--main);font-size:22px;padding-left:4px;opacity:0;transition:opacity .2s}
+#live.show{opacity:1}
+#box{position:relative;overflow:hidden;height:calc(var(--fs) * 1.7 * 3);--fs:clamp(20px,1.1vw + 12px,30px);font-size:var(--fs)}
+#words{position:relative;display:flex;flex-wrap:wrap;line-height:1.7;transition:transform .15s ease;user-select:none}
+.word{margin-right:.6em;color:var(--sub);white-space:nowrap;border-bottom:2px solid transparent;line-height:1.5;margin-block:.1em}
+.word span{transition:color .05s}
+.word .ok,.word.done span{color:var(--ink)}
+.word .bad{color:var(--err)}
+.word .x{color:var(--errx)}
+.word.err{border-bottom-color:color-mix(in srgb,var(--err) 55%,transparent)}
+.word.shake{animation:shake .22s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+#caret{position:absolute;left:0;top:0;width:3px;height:1.2em;margin-top:.15em;background:var(--main);border-radius:2px;transition:transform .09s linear;pointer-events:none}
+#caret.idle{animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+#blur{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:10px;font-size:16px;color:var(--ink);cursor:pointer;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);background:color-mix(in srgb,var(--bg) 30%,transparent)}
+#box.blurred #blur{display:flex}
+#hid{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0}
+.actions{display:flex;justify-content:center;gap:8px;margin-top:22px}
+.ibtn{width:48px;height:48px;display:grid;place-items:center;color:var(--sub);font-size:20px}
+.ibtn:hover,.ibtn:focus-visible{color:var(--ink);background:var(--panel)}
+.loading{color:var(--sub);text-align:center;padding:40px}
+
+/* results */
+#result[hidden],#test[hidden]{display:none}
+.res-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:stretch}
+.big{display:flex;flex-direction:column;gap:14px;min-width:150px}
+.big>div{display:flex;flex-direction:column;gap:2px}
+.lbl{color:var(--sub);font-size:14px}
+.big .lbl{font-size:30px;line-height:1}
+.big .val{color:var(--main);font-size:clamp(48px,5vw,68px);line-height:1}
+.pb[hidden]{display:none}
+.pb{display:inline-block;margin-top:4px;background:var(--main);color:var(--bg);font-size:12px;border-radius:5px;padding:2px 7px;width:max-content}
+.chartwrap{display:flex;flex-direction:column;min-height:240px}
+.legend{display:flex;gap:18px;justify-content:flex-end;color:var(--sub);font-size:12px;padding-bottom:6px}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid var(--main);vertical-align:middle;margin-right:6px}
+.legend i.raw{border-top:2px dashed var(--sub)}
+.legend i.e{width:8px;height:8px;border:0;border-radius:50%;background:var(--err)}
+.fig{position:relative;flex:1;min-height:200px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid color-mix(in srgb,var(--sub) 40%,transparent);color:var(--ink);font-size:12px;padding:6px 9px;border-radius:6px;white-space:nowrap;display:none;z-index:2}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px 24px;margin-top:26px}
+.stats .val{color:var(--main);font-size:28px;line-height:1.2;white-space:nowrap}
+.stats .val.sm{font-size:16px;white-space:normal;line-height:1.4}
+.stats .note{color:var(--sub);font-size:12px}
+.passage{margin-top:28px;border-top:1px solid color-mix(in srgb,var(--sub) 30%,transparent);padding-top:18px}
+.passage .ref{justify-content:flex-start;margin-bottom:6px}
+.passage p{margin:0;color:var(--sub);font:400 15px/1.7 var(--mono);max-width:110ch}
+.practice{margin-top:12px;color:var(--sub);font-size:13px}
+.practice span{color:var(--err);margin-right:10px}
+.hist{text-align:center;color:var(--sub);font-size:13px;margin-top:6px}
+
+/* modal */
+#modal,.modal{position:fixed;inset:0;background:color-mix(in srgb,#000 55%,transparent);display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px;z-index:10;overflow:auto}
+#modal[hidden],.modal[hidden]{display:none}
+.sheet{background:var(--bg);border-radius:14px;width:min(980px,100%);padding:clamp(18px,3vw,32px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.sheet h2{font:600 32px/1.05 var(--serif);margin:0 0 4px}
+.sheet h3{font:500 13px var(--mono);color:var(--sub);margin:22px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.refin{display:flex;gap:8px;flex-wrap:wrap}
+.refin input{flex:1 1 260px;font:16px var(--mono);color:var(--ink);background:var(--panel);border:1px solid transparent;border-radius:8px;padding:10px 12px;min-height:44px}
+.refin input::placeholder{color:var(--sub)}
+.btn{background:var(--panel);padding:10px 16px;min-height:44px;font-size:14px}
+.btn:hover{color:var(--main)}
+.btn.pri{background:var(--main);color:var(--bg)}
+.btn.pri:hover{color:var(--bg);filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:default}
+.paste textarea{display:block;width:100%;font:15px/1.5 var(--mono);color:var(--ink);background:var(--panel);border:1px solid transparent;border-radius:8px;padding:10px 12px;resize:vertical;min-height:96px;margin-bottom:8px}
+.paste textarea::placeholder{color:var(--sub)}
+.chk{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:13px;min-height:44px;cursor:pointer}
+.refin .chk input{flex:none;width:18px;height:18px;min-height:0;padding:0;margin:0;accent-color:var(--olive)}
+.fine{color:var(--sub);font-size:12px;margin-top:4px}
+.msg{min-height:20px;font-size:13px;color:var(--err);margin-top:6px}
+.chip{background:var(--panel);color:var(--sub);padding:7px 11px;font-size:13px;min-height:36px}
+.chip:hover{color:var(--ink)}
+.chip.on{background:var(--olive);color:#FEFAE0}
+.books{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 28px}
+.sec{margin-bottom:12px}
+.sec b{display:block;font:italic 500 18px var(--serif);color:var(--ink);margin-bottom:6px}
+.sec .row{gap:6px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px;color:var(--sub);font-size:13px}
+
+footer{padding:18px 0 22px;color:var(--sub);font-size:12px}
+.keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin-bottom:14px}
+kbd{font:11px var(--mono);background:var(--sub);color:var(--bg);border-radius:4px;padding:1px 6px}
+.cred{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+@media(max-width:760px){
+  .res-top{grid-template-columns:minmax(0,1fr)}
+  .big{flex-direction:row;flex-wrap:wrap;gap:6px 28px}
+  .books{grid-template-columns:minmax(0,1fr)}
+  #live{font-size:18px;gap:18px}
+  header{padding-top:18px}
+}
+@media(prefers-reduced-motion:reduce){#words,#caret{transition:none}.word.shake{animation:none}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <a class="logo" href="#" onclick="return false" aria-label="versetype">
+    <svg viewBox="0 0 40 30" aria-hidden="true"><path d="M20 6C15 2 8 2 3 4v22c5-2 12-2 17 2 5-4 12-4 17-2V4c-5-2-12-2-17 2Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M20 6v22M8 10h7M8 15h7M25 10h7M25 15h7M25 20h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <div><b>versetype</b><small>type the word, word by word</small></div>
+  </a>
+</header>
+
+<nav id="config" class="wrap" aria-label="Test settings">
+  <div class="grp sel"><label for="trSel" class="sr">Translation</label><select id="trSel"></select><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+  <div class="grp">
+    <button data-tog="punct" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M8 4v10M8 19v1M16 8c0-2 1-3 3-4M14 14c0-2 1-3 3-4"/></svg> punctuation</button>
+    <button data-tog="caps" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M3 19 8 5l5 14M5 14h6M15 13c1-1.5 2.5-2 4-2 2 0 3 1 3 3v5M22 16c-1-.5-2-.6-3-.6-2 0-3.5.9-3.5 2.4s1 2.2 2.5 2.2c2 0 4-1.5 4-4"/></svg> capitals</button>
+  </div>
+  <div class="grp">
+    <button data-scope="all">whole bible</button>
+    <button data-scope="ot">old testament</button>
+    <button data-scope="nt">new testament</button>
+    <button id="pickBtn"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16M4 12h10M4 19h6M17 15l2 2 3-4"/></svg> <span id="pickLbl">choose…</span></button>
+  </div>
+  <div class="grp">
+    <button data-len="short">short</button>
+    <button data-len="medium">medium</button>
+    <button data-len="long">long</button>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section id="test" aria-label="Typing test">
+    <div class="ref"><svg class="i" viewBox="0 0 24 24"><path d="M12 6C9 4 6 4 3 5v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v14"/></svg><span id="refText">opening the scroll…</span></div>
+    <div id="live" aria-live="off"><span id="lProg">0/0</span><span id="lWpm"></span><span id="lTime"></span></div>
+    <div id="box" class="blurred">
+      <div id="words"><div id="caret" class="idle"></div></div>
+      <div id="blur"><svg class="i" viewBox="0 0 24 24"><path d="M9 3v6l-4 4 7 8 7-8-4-4V3"/></svg> click here or press any key to focus</div>
+      <input id="hid" aria-label="Type the passage here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="actions">
+      <button class="ibtn" id="repeatBtn" title="repeat this passage (esc)" aria-label="Repeat this passage"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>
+      <button class="ibtn" id="newBtn" title="new passage (tab + enter)" aria-label="New passage"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <div class="copy" id="copyLine"></div>
+  </section>
+
+  <section id="result" hidden aria-label="Results">
+    <div class="res-top">
+      <div class="big">
+        <div><span class="lbl">wpm</span><span class="val" id="rWpm">0</span><span class="pb" id="rPb" hidden>personal best</span></div>
+        <div><span class="lbl">acc</span><span class="val" id="rAcc">0%</span></div>
+      </div>
+      <div class="chartwrap">
+        <div class="legend"><span><i></i>wpm</span><span><i class="raw"></i>raw (per second)</span><span><i class="e"></i>errors</span></div>
+        <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Words per minute over the test"></svg><div class="tip" id="tip"></div></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div><div class="lbl">test type</div><div class="val sm" id="rType"></div></div>
+      <div><div class="lbl">word accuracy</div><div class="val" id="rWacc"></div><div class="note" id="rWaccN"></div></div>
+      <div><div class="lbl">raw</div><div class="val" id="rRaw"></div></div>
+      <div><div class="lbl">characters</div><div class="val" id="rChars"></div><div class="note">correct / incorrect / extra</div></div>
+      <div><div class="lbl">consistency</div><div class="val" id="rCons"></div></div>
+      <div><div class="lbl">time</div><div class="val" id="rTime"></div><div class="note" id="rWords"></div></div>
+    </div>
+    <div class="passage">
+      <div class="ref"><svg class="i" viewBox="0 0 24 24"><path d="M12 6C9 4 6 4 3 5v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v14"/></svg><span id="rRef"></span></div>
+      <p id="rText"></p>
+      <div class="practice" id="rPractice"></div>
+    </div>
+    <div class="actions">
+      <button class="ibtn" id="rRepeat" title="repeat this passage (esc)" aria-label="Repeat this passage"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>
+      <button class="ibtn" id="rNext" title="next passage (enter)" aria-label="Next passage"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <div class="hist" id="rHist"></div>
+    <div class="copy" id="rCopy"></div>
+  </section>
+</main>
+
+<div id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="sheet">
+    <h2 id="mTitle">Choose your passages</h2>
+    <h3>type a specific passage</h3>
+    <form class="refin" id="refForm">
+      <input id="refIn" placeholder="Psalm 23 · John 3:16-21 · Romans 8:28-39 · Jude" autocomplete="off">
+      <button class="btn pri" type="submit">type this passage</button>
+    </form>
+    <div class="msg" id="refMsg"></div>
+    <h3>or paste your own text — use this for the ESV, NIV, NLT or any translation you read</h3>
+    <form class="paste" id="pasteForm">
+      <textarea id="pasteIn" placeholder="Paste a passage copied from your Bible app or website"></textarea>
+      <div class="refin"><input id="pasteLbl" placeholder="label, e.g. Romans 8:28-30 (ESV)" autocomplete="off"><label class="chk"><input type="checkbox" id="pasteClean" checked> remove verse numbers and footnote marks</label><button class="btn pri" type="submit">type this text</button></div>
+    </form>
+    <div class="fine">The ESV, NIV and NLT are under copyright, so they can't be built into the site. Text you paste stays in this browser tab only.</div>
+    <div class="msg" id="pasteMsg"></div>
+    <h3>or draw random passages from these books — tap a group to choose it, tap books to add or remove</h3>
+    <div class="row" id="quick"></div>
+    <div class="books" id="bookGrid" style="margin-top:18px"></div>
+    <div class="foot"><span id="selInfo"></span><span class="row"><button class="btn" id="mCancel">cancel</button><button class="btn pri" id="mDone">use these books</button></span></div>
+  </div>
+</div>
+
+<div id="keysModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="kTitle">
+  <div class="sheet">
+    <h2 id="kTitle">Add translations with an API key</h2>
+    <p class="fine" style="font-size:13px;margin:6px 0 0">Keys are saved only in this browser on this device. Scripture fetched with them is kept in memory for this visit only and is never saved.</p>
+    <h3>API.Bible key — NIV, NLT, NKJV, CSB, NASB and more · get one at <a href="https://api.bible" target="_blank" rel="noopener">api.bible</a></h3>
+    <div class="refin"><input id="kAbs" placeholder="paste your API.Bible key" autocomplete="off" spellcheck="false"></div>
+    <div class="msg" id="kAbsMsg"></div>
+    <h3>ESV API key — the ESV is not on API.Bible · get one at <a href="https://api.esv.org" target="_blank" rel="noopener">api.esv.org</a></h3>
+    <div class="refin"><input id="kEsv" placeholder="paste your ESV API key (optional)" autocomplete="off" spellcheck="false"></div>
+    <div class="msg" id="kEsvMsg"></div>
+    <div class="row"><button class="btn pri" id="kSave">save and check keys</button></div>
+    <h3 id="kListH" hidden>API.Bible translations on your key — tick the ones to show in the menu</h3>
+    <div class="klist" id="kList"></div>
+    <div class="foot"><span></span><button class="btn pri" id="kDone">done</button></div>
+  </div>
+</div>
+
+<footer class="wrap">
+  <div class="keys"><span><kbd>tab</kbd> + <kbd>enter</kbd> — new passage</span><span><kbd>esc</kbd> — repeat passage</span><span><kbd>enter</kbd> — next, on the results screen</span></div>
+  <div class="cred"><span id="cred">King James Version · public domain</span><span>you cannot move on until each word is typed correctly</span></div>
+</footer>
+
+<script>
+{
+const BOOKS=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
+const SECTIONS=[["Law",0,4],["History",5,16],["Poetry & Wisdom",17,21],["Major Prophets",22,26],["Minor Prophets",27,38],["Gospels",39,42],["Acts",43,43],["Pauline Epistles",44,56],["General Epistles",57,64],["Revelation",65,65]];
+const LENS={short:[20,45],medium:[50,100],long:[110,200]};
+const ALIAS={ps:"Psalms",psa:"Psalms",psalm:"Psalms",pss:"Psalms",songofsongs:"Song of Solomon",song:"Song of Solomon",canticles:"Song of Solomon",jn:"John",jhn:"John",mk:"Mark",mrk:"Mark",mt:"Matthew",mat:"Matthew",lk:"Luke",luk:"Luke",jas:"James",jm:"James",phil:"Philippians",php:"Philippians",phm:"Philemon",philem:"Philemon",jud:"Judges",jdg:"Judges",rev:"Revelation",revelations:"Revelation",ecc:"Ecclesiastes",qoh:"Ecclesiastes",ezk:"Ezekiel",eze:"Ezekiel",sos:"Song of Solomon",judg:"Judges"};
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem("vt:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("vt:"+k,JSON.stringify(v))}catch(e){}}};
+const SELF=!!document.querySelector('meta[name="vt-selfhosted"]');
+const TRANS={kjv:["KJV","King James Version"],bsb:["BSB","Berean Standard Bible"],web:["WEB","World English Bible"],asv:["ASV","American Standard Version"]};
+const USFM="GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV".split(" ");
+const apiKeys=Object.assign({abs:"",esv:""},SELF?store.get("keys",{}):{});
+let absList=SELF?store.get("absBibles",[]):[];
+const ESV_COPY="Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.";
+function trInfo(code){
+  if(TRANS[code])return{kind:"local",abbr:TRANS[code][0],name:TRANS[code][1]};
+  if(code==="esv"&&apiKeys.esv)return{kind:"esv",abbr:"ESV",name:"English Standard Version"};
+  if(code&&code.startsWith("abs:")&&apiKeys.abs){const b=absList.find(x=>"abs:"+x.id===code);if(b)return{kind:"abs",id:b.id,abbr:b.abbr,name:b.name}}
+  return null;
+}
+const cfg=Object.assign({punct:true,caps:true,len:"medium",books:range(0,65),ref:"",tr:"kjv"},store.get("cfg",{}));
+if(!trInfo(cfg.tr))cfg.tr="kjv";
+const saveCfg=()=>store.set("cfg",cfg);
+
+// ---------- data ----------
+let bible=null,vb,vc,vv,chStart,cand=[];
+const wc=s=>s?s.split(" ").length:0;
+const cache={};
+const getRows=code=>SELF?new Promise((res,rej)=>{const D=window.VT_DATA||{};if(D[code])return res(D[code]);const el=document.createElement("script");el.src=code+".js";el.onload=()=>window.VT_DATA&&VT_DATA[code]?res(VT_DATA[code]):rej(new Error("missing"));el.onerror=()=>rej(new Error("missing"));document.head.appendChild(el)}):fetch(code+".json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
+const structOf=code=>TRANS[code]?code:"kjv";
+const loadTr=code=>cache[code]||(cache[code]=getRows(code).then(rows=>{const B=BOOKS.map(()=>[]);for(const [b,c,vs] of rows)B[b][c-1]=vs;return B}).catch(e=>{delete cache[code];throw e}));
+const tag=p=>p.mode==="custom"?"":" · "+trInfo(cfg.tr).abbr;
+function index(){
+  let n=0;bible.forEach(b=>b.forEach(c=>n+=c.length));
+  vb=new Uint8Array(n);vc=new Uint16Array(n);vv=new Uint16Array(n);chStart=bible.map(()=>[]);
+  let i=0;bible.forEach((b,bi)=>b.forEach((c,ci)=>{chStart[bi][ci]=i;c.forEach((_,k)=>{vb[i]=bi;vc[i]=ci;vv[i]=k;i++})}));
+}
+const verse=i=>bible[vb[i]][vc[i]][vv[i]];
+const sameCh=(i,j)=>vb[i]===vb[j]&&vc[i]===vc[j];
+const ends=i=>/[.?!][)']?$/.test(verse(i));
+function buildCand(){const s=new Set(cfg.books);cand=[];for(let i=0;i<vb.length;i++)if(s.has(vb[i])&&verse(i))cand.push(i)}
+const bname=(b,single)=>single&&b===18?"Psalm":BOOKS[b];
+function label(a,b){
+  const B=vb[a],C=vc[a]+1,V=vv[a]+1,last=bible[vb[b]][vc[b]].length;
+  if(sameCh(a,b)&&vv[a]===0&&vv[b]===last-1)return bname(B,1)+" "+C;
+  if(sameCh(a,b))return bname(B,1)+" "+C+":"+V+(a===b?"":"–"+(vv[b]+1));
+  if(vb[a]===vb[b])return BOOKS[B]+" "+C+":"+V+"–"+(vc[b]+1)+":"+(vv[b]+1);
+  return BOOKS[B]+" "+C+":"+V+" – "+BOOKS[vb[b]]+" "+(vc[b]+1)+":"+(vv[b]+1);
+}
+function randomPassage(){
+  const [mn,mx]=LENS[cfg.len];let a=cand[0];
+  for(let t=0;t<40;t++){a=cand[Math.floor(Math.random()*cand.length)];if(vv[a]===0||ends(a-1))break}
+  let b=a,w=wc(verse(a));
+  while((w<mn||(!ends(b)&&w<mx))&&b+1<vb.length&&sameCh(b+1,a)){if(w>=mn&&w+wc(verse(b+1))>mx*1.4)break;b++;w+=wc(verse(b))}
+  while(w<mn&&a>0&&sameCh(a-1,b)){a--;w+=wc(verse(a))}
+  return{a,b,mode:"random",label:label(a,b)};
+}
+function findBook(q){
+  const n=q.toLowerCase().replace(/[^a-z0-9]/g,"");if(!n)return -1;
+  const norm=BOOKS.map(b=>b.toLowerCase().replace(/[^a-z0-9]/g,""));
+  if(ALIAS[n])return BOOKS.indexOf(ALIAS[n]);
+  let i=norm.indexOf(n);if(i>=0)return i;
+  const m=n.match(/^([123])(.*)$/);
+  if(m&&ALIAS[m[2]]){i=norm.indexOf(m[1]+ALIAS[m[2]].toLowerCase());if(i>=0)return i}
+  return norm.findIndex(b=>b.startsWith(n));
+}
+function parseRef(str){
+  const s=str.trim().replace(/[–—]/g,"-");
+  const m=s.match(/^(.+?)\s*(\d+)?(?:\s*:\s*(\d+)(?:\s*-\s*(?:(\d+)\s*:\s*)?(\d+))?)?$/);
+  if(!m)return"Try something like “John 3:16-21” or “Psalm 23”.";
+  let name=m[1],ch=m[2];
+  if(!ch&&/\d$/.test(name)){const k=name.match(/^(.*\D)(\d+)$/);if(k){name=k[1];ch=k[2]}}
+  const b=findBook(name);if(b<0)return"I couldn’t find a book called “"+name.trim()+"”.";
+  const c=(+ch||1)-1;if(!bible[b][c])return BOOKS[b]+" has "+bible[b].length+" chapter"+(bible[b].length>1?"s":"")+".";
+  if(!m[3]){const a=chStart[b][c];return{a,b:a+bible[b][c].length-1,mode:"ref",kind:"chapter"}}
+  const v1=+m[3]-1;if(!bible[b][c][v1])return BOOKS[b]+" "+(c+1)+" has "+bible[b][c].length+" verses.";
+  const c2=m[4]?+m[4]-1:c,v2=m[5]?+m[5]-1:v1;
+  if(!bible[b][c2]||!bible[b][c2][v2])return"That range runs past the end of the chapter.";
+  const a=chStart[b][c]+v1,e=chStart[b][c2]+v2;if(e<a)return"The range ends before it starts.";
+  return{a,b:e,mode:"ref",kind:"verses"};
+}
+function nextRef(p){
+  const N=vb.length;
+  if(p.kind==="chapter"){const a=(p.b+1)%N;return mk({a,b:a+bible[vb[a]][vc[a]].length-1,mode:"ref",kind:"chapter"})}
+  const span=p.b-p.a,a=(p.b+1)%N;let b=a;while(b-a<span&&b+1<N&&vb[b+1]===vb[a])b++;
+  return mk({a,b,mode:"ref",kind:"verses"});
+}
+const mk=p=>(p.label=label(p.a,p.b),p);
+function passageText(p,raw){
+  let t="";if(p.mode==="custom")t=p.text;else if(raw!=null)t=raw;else for(let i=p.a;i<=p.b;i++)if(verse(i))t+=(t?" ":"")+verse(i);
+  if(!cfg.punct)t=t.replace(/-/g," ").replace(/[^A-Za-z0-9' ]/g,"").replace(/(^|\s)'+|'+(?=\s|$)/g,"$1");
+  if(!cfg.caps)t=t.toLowerCase();
+  return t.replace(/\s+/g," ").trim();
+}
+
+// ---------- typing engine ----------
+const box=$("box"),wordsEl=$("words"),caret=$("caret"),hid=$("hid");
+let P=null,words=[],wEls=[],wi=0,typed="",wErr=[],keys=[],t0=0,running=false,finished=false,lineStep=0,liveTimer=0,lastKey=0;
+let C={ok:0,bad:0,extra:0};
+let loadId=0;
+function setCopy(text,link){for(const id of["copyLine","rCopy"]){const el=$(id);el.textContent=text||"";if(link){if(text)el.append(" · ");const a=document.createElement("a");a.href=link[0];a.target="_blank";a.rel="noopener";a.textContent=link[1];el.append(a)}}}
+function showMsg(m){words=[];wEls=[];wordsEl.innerHTML='<div class="msgline"></div>';wordsEl.firstChild.textContent=m;wordsEl.appendChild(caret);caret.style.visibility="hidden";wordsEl.style.transform="";box.style.height="";showTest()}
+function load(p){
+  P=p;const id=++loadId,info=trInfo(cfg.tr);
+  $("refText").textContent=p.label+tag(p);setCopy("");
+  clearInterval(liveTimer);$("live").classList.remove("show");finished=false;running=false;
+  if(p.mode!=="custom"&&info.kind!=="local"){
+    showMsg("opening "+p.label+" in the "+info.abbr+"…");
+    remoteText(info,p.a,p.b).then(r=>{if(id!==loadId)return;setCopy(r.copy,r.link);if(r.fums)trackFums(r.fums);begin(r.text)}).catch(e=>{if(id===loadId)showMsg(e.message)});
+    return;
+  }
+  begin(null);
+}
+function begin(raw){
+  const p=P;caret.style.visibility="";
+  words=passageText(p,raw).split(" ").filter(Boolean);
+  if(!words.length){showMsg("This passage came back empty in this translation. Try another passage.");return}
+  wi=0;typed="";wErr=words.map(()=>false);keys=[];t0=0;running=false;finished=false;C={ok:0,bad:0,extra:0};
+  clearInterval(liveTimer);$("live").classList.remove("show");
+  wordsEl.innerHTML=words.map(w=>'<div class="word">'+[...w].map(ch=>"<span>"+esc(ch)+"</span>").join("")+"</div>").join("");
+  wordsEl.appendChild(caret);caret.className="idle";
+  wEls=[...wordsEl.querySelectorAll(".word")];
+  hid.value="";showTest();layout();updLive();
+}
+function showTest(){$("result").hidden=true;$("test").hidden=false;focusInput()}
+function focusInput(){if($("modal").hidden&&$("keysModal").hidden&&!$("test").hidden){hid.focus({preventScroll:true})}syncBlur()}
+function syncBlur(){box.classList.toggle("blurred",document.activeElement!==hid)}
+function layout(){
+  if(!wEls.length)return;
+  const t0p=wEls[0].offsetTop;const nxt=wEls.find(e=>e.offsetTop>t0p+2);
+  lineStep=nxt?nxt.offsetTop-t0p:wEls[0].offsetHeight*1.13;
+  box.style.height=Math.round(lineStep*3)+"px";
+  scrollLine();placeCaret();
+}
+function scrollLine(){
+  const el=wEls[wi];if(!el)return;
+  const line=Math.round((el.offsetTop-wEls[0].offsetTop)/lineStep);
+  wordsEl.style.transform="translateY("+(-Math.max(0,line-1)*lineStep)+"px)";
+}
+function placeCaret(){
+  const el=wEls[wi];if(!el)return;const sp=el.children,wr=el.getBoundingClientRect();let r,x;
+  if(typed.length<sp.length){r=sp[typed.length].getBoundingClientRect();x=r.left}
+  else{r=sp[sp.length-1].getBoundingClientRect();x=r.right}
+  x=el.offsetLeft+x-wr.left;const y=el.offsetTop+r.top-wr.top;
+  caret.style.transform="translate("+x+"px,"+y+"px)";
+}
+function renderWord(){
+  const w=words[wi],el=wEls[wi];let h="";
+  for(let k=0;k<Math.max(w.length,typed.length);k++){
+    if(k>=w.length)h+='<span class="x">'+esc(typed[k])+"</span>";
+    else h+="<span"+(k<typed.length?(typed[k]===w[k]?' class="ok"':' class="bad"'):"")+">"+esc(w[k])+"</span>";
+  }
+  el.innerHTML=h;placeCaret();
+}
+function start(){t0=performance.now();running=true;$("live").classList.add("show");liveTimer=setInterval(updLive,250)}
+function now(){return(performance.now()-t0)/1000}
+function updLive(){
+  $("lProg").textContent=wi+"/"+words.length;
+  if(!running){$("lWpm").textContent="";$("lTime").textContent="";return}
+  const t=now();$("lTime").textContent=fmtT(t);
+  $("lWpm").textContent=t>1?Math.round(C.ok/5/(t/60))+" wpm":"";
+  caret.classList.toggle("idle",performance.now()-lastKey>600);
+}
+const fmtT=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
+function key(ch){
+  const w=words[wi];
+  if(ch===" "){
+    if(!typed)return;
+    if(!running)start();
+    if(typed===w){keys.push([now(),1]);C.ok++;advance()}
+    else{keys.push([now(),0]);C.bad++;wErr[wi]=true;const el=wEls[wi];el.classList.remove("shake");void el.offsetWidth;el.classList.add("shake")}
+    return;
+  }
+  if(!running)start();
+  const pos=typed.length,good=typed===w.slice(0,pos)&&w[pos]===ch;
+  keys.push([now(),good?1:0]);
+  if(good)C.ok++;else{wErr[wi]=true;pos>=w.length?C.extra++:C.bad++}
+  if(typed.length<w.length+12)typed+=ch;
+  if(wi===words.length-1&&typed===w){renderWord();finish();return}
+}
+function advance(){
+  const el=wEls[wi];el.innerHTML=[...words[wi]].map(c=>"<span>"+esc(c)+"</span>").join("");
+  el.classList.add("done");if(wErr[wi])el.classList.add("err");
+  wi++;typed="";scrollLine();placeCaret();updLive();
+}
+hid.addEventListener("input",()=>{
+  if(finished||!P||!words.length){hid.value="";return}const v=hid.value;lastKey=performance.now();caret.classList.remove("idle");
+  let common=0;while(common<v.length&&common<typed.length&&v[common]===typed[common])common++;
+  if(common<typed.length)typed=typed.slice(0,common);
+  for(const ch of v.slice(common)){key(ch);if(finished)return}
+  hid.value=typed;renderWord();
+});
+hid.addEventListener("paste",e=>e.preventDefault());
+hid.addEventListener("focus",syncBlur);hid.addEventListener("blur",syncBlur);
+box.addEventListener("click",focusInput);
+wordsEl.addEventListener("animationend",placeCaret);
+
+// ---------- results ----------
+let R=null;
+function finish(){
+  finished=true;running=false;clearInterval(liveTimer);
+  const T=Math.max(now(),.1),chars=words.join(" ").length,ks=keys.length,good=keys.filter(k=>k[1]).length;
+  const n=Math.floor(T)>=1&&T-Math.floor(T)<.5?Math.floor(T):Math.ceil(T);
+  const edges=range(0,n).map(i=>Math.min(i,T));edges[n]=T;
+  const series=[];
+  for(let s=1;s<=n;s++){
+    const lo=edges[s-1],hi=edges[s],dur=Math.max(hi-lo,.2);
+    const inB=keys.filter(k=>(s===1?k[0]>=0:k[0]>lo)&&k[0]<=hi);
+    const cum=keys.filter(k=>k[0]<=hi&&k[1]).length;
+    series.push({t:hi,wpm:cum/5/(Math.max(hi,.5)/60),raw:inB.length/5/(dur/60),err:inB.filter(k=>!k[1]).length});
+  }
+  const raws=series.map(s=>s.raw),mean=raws.reduce((a,b)=>a+b,0)/raws.length,sd=Math.sqrt(raws.reduce((a,b)=>a+(b-mean)**2,0)/raws.length);
+  const clean=wErr.filter(e=>!e).length;
+  R={T,wpm:chars/5/(T/60),raw:ks/5/(T/60),acc:ks?good/ks*100:100,wacc:clean/words.length*100,clean,series,cons:mean?Math.max(0,100*(1-sd/mean)):0};
+  const hist=store.get("hist",[]),prevBest=hist.reduce((m,h)=>Math.max(m,h.wpm),0);
+  hist.push({t:Date.now(),wpm:Math.round(R.wpm*10)/10,acc:Math.round(R.acc),ref:P.label+tag(P)});while(hist.length>200)hist.shift();store.set("hist",hist);
+  $("rWpm").textContent=Math.round(R.wpm);$("rWpm").title=R.wpm.toFixed(2)+" wpm";
+  $("rAcc").textContent=Math.floor(R.acc)+"%";$("rAcc").title=R.acc.toFixed(2)+"% of keystrokes correct";
+  $("rPb").hidden=!(hist.length>1&&R.wpm>prevBest);
+  $("rType").textContent=(P.mode==="ref"?"chosen passage · "+trInfo(cfg.tr).abbr:P.mode==="custom"?"pasted text":cfg.len+" · "+scopeName()+" · "+trInfo(cfg.tr).abbr)+(cfg.punct?"":" · no punctuation")+(cfg.caps?"":" · lowercase");
+  $("rWacc").textContent=Math.round(R.wacc)+"%";$("rWaccN").textContent=R.clean+" of "+words.length+" words with no mistakes";
+  $("rRaw").textContent=Math.round(R.raw);
+  $("rChars").textContent=C.ok+"/"+C.bad+"/"+C.extra;
+  $("rCons").textContent=Math.round(R.cons)+"%";
+  $("rTime").textContent=R.T<60?R.T.toFixed(1)+"s":fmtT(R.T);$("rWords").textContent=words.length+" words";
+  $("rRef").textContent=P.label+tag(P);$("rText").textContent=words.join(" ");
+  const miss=[...new Set(words.filter((w,i)=>wErr[i]))].slice(0,10);
+  $("rPractice").innerHTML=miss.length?"words to practise: "+miss.map(w=>"<span>"+esc(w)+"</span>").join(""):"a clean copy — not a single word missed.";
+  const last=hist.slice(-10);
+  $("rHist").textContent=hist.length+" test"+(hist.length>1?"s":"")+" on this device · best "+Math.round(Math.max(prevBest,R.wpm))+" wpm · last "+last.length+" average "+Math.round(last.reduce((a,h)=>a+h.wpm,0)/last.length)+" wpm";
+  $("test").hidden=true;$("result").hidden=false;drawChart();$("rNext").focus({preventScroll:true});
+}
+function drawChart(){
+  const s=$("chart");const W=s.clientWidth,H=s.clientHeight;if(!R||!W||!H)return;
+  const d=R.series,pl=38,pr=8,pt=8,pb=24,iw=W-pl-pr,ih=H-pt-pb;
+  const top=Math.max(20,...d.map(p=>Math.max(p.wpm,p.raw)));const rs=top/4,mag=10**Math.floor(Math.log10(rs)),step=[1,2,2.5,5,10].map(m=>m*mag).find(v=>v>=rs),ymax=Math.ceil(top/step)*step;
+  const X=t=>pl+(d.length<2?iw/2:(t-d[0].t)/(d[d.length-1].t-d[0].t)*iw),Y=v=>pt+ih-v/ymax*ih;
+  let g="";
+  for(let v=0;v<=ymax;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--sub)" stroke-opacity=".18"/><text x="${pl-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--sub)">${v}</text>`;
+  const every=Math.max(1,Math.ceil(d.length/(W<520?5:12)));
+  d.forEach((p,i)=>{if(i%every===0||i===d.length-1)g+=`<text x="${X(p.t)}" y="${H-6}" text-anchor="middle" font-size="11" fill="var(--sub)">${Math.round(p.t)}s</text>`});
+  const path=k=>d.map((p,i)=>(i?"L":"M")+X(p.t).toFixed(1)+","+Y(p[k]).toFixed(1)).join("");
+  g+=`<path d="${path("raw")}" fill="none" stroke="var(--sub)" stroke-width="2" stroke-dasharray="5 5"/>`;
+  g+=`<path d="${path("wpm")}" fill="none" stroke="var(--main)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  if(d.length<2)g+=`<circle cx="${X(d[0].t)}" cy="${Y(d[0].wpm)}" r="4" fill="var(--main)"/>`;
+  d.forEach(p=>{if(p.err)g+=`<circle cx="${X(p.t)}" cy="${Y(p.wpm)}" r="${Math.min(4+p.err,8)}" fill="var(--err)" stroke="var(--bg)" stroke-width="2"/>`});
+  g+=`<line id="xh" y1="${pt}" y2="${pt+ih}" stroke="var(--ink)" stroke-opacity=".35" visibility="hidden"/><rect id="hit" x="${pl}" y="0" width="${iw}" height="${H}" fill="transparent"/>`;
+  s.innerHTML=g;
+  const tip=$("tip"),xh=s.querySelector("#xh"),hit=s.querySelector("#hit");
+  const move=e=>{const r=s.getBoundingClientRect(),mx=e.clientX-r.left;let bi=0,bd=1e9;d.forEach((p,i)=>{const dd=Math.abs(X(p.t)-mx);if(dd<bd){bd=dd;bi=i}});const p=d[bi],x=X(p.t);
+    xh.setAttribute("x1",x);xh.setAttribute("x2",x);xh.setAttribute("visibility","visible");
+    tip.innerHTML=`<b>${p.t.toFixed(1)}s</b><br>wpm ${Math.round(p.wpm)}<br>raw ${Math.round(p.raw)}<br>errors ${p.err}`;tip.style.display="block";
+    tip.style.left=Math.min(Math.max(0,x+12),W-tip.offsetWidth)+"px";tip.style.top=pt+"px"};
+  hit.addEventListener("pointermove",move);hit.addEventListener("pointerleave",()=>{tip.style.display="none";xh.setAttribute("visibility","hidden")});
+}
+const chartRO=new ResizeObserver(drawChart);chartRO.observe($("fig"));
+const layoutRO=new ResizeObserver(()=>layout());layoutRO.observe(box);
+
+// ---------- config UI ----------
+function scopeName(){
+  const s=cfg.books;if(s.length===66)return"whole bible";
+  const eq=(a,b)=>s.length===b-a+1&&s.every((x,i)=>x===a+i);
+  if(eq(0,38))return"old testament";if(eq(39,65))return"new testament";
+  for(const [n,a,b] of SECTIONS)if(eq(a,b))return n.toLowerCase();
+  return s.length===1?BOOKS[s[0]].toLowerCase():s.length+" books";
+}
+function syncConfig(){
+  document.querySelectorAll("[data-tog]").forEach(b=>{const on=cfg[b.dataset.tog];b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
+  renderTrSel();const ti=trInfo(cfg.tr);
+  $("cred").textContent=P&&P.mode==="custom"?"your pasted text":ti.kind==="local"?ti.name+" · public domain":ti.name+(ti.kind==="abs"?" · via API.Bible":" · via the ESV API");
+  const sc=scopeName(),ref=cfg.ref,cus=P&&P.mode==="custom";
+  document.querySelectorAll("[data-scope]").forEach(b=>b.classList.toggle("on",!ref&&!cus&&{all:"whole bible",ot:"old testament",nt:"new testament"}[b.dataset.scope]===sc));
+  const custom=ref||!["whole bible","old testament","new testament"].includes(sc);
+  $("pickLbl").textContent=cus?"pasted text":ref?P&&P.mode==="ref"?P.label.toLowerCase():ref.toLowerCase():custom?sc:"choose…";$("pickBtn").classList.toggle("on",!!(custom||cus));
+  document.querySelectorAll("[data-len]").forEach(b=>b.classList.toggle("on",!ref&&!cus&&b.dataset.len===cfg.len));
+  saveCfg();
+}
+function newPassage(){if(!bible)return;let p;if(cfg.ref&&!(P&&P.mode==="custom")){p=P&&P.mode==="ref"?nextRef(P):null;if(!p){const r=parseRef(cfg.ref);p=typeof r==="string"?null:mk(r)}}if(!p){cfg.ref="";p=randomPassage()}load(p);syncConfig()}
+function repeat(){if(P)load(P)}
+document.querySelectorAll("[data-tog]").forEach(b=>b.addEventListener("click",()=>{cfg[b.dataset.tog]=!cfg[b.dataset.tog];syncConfig();repeat()}));
+document.querySelectorAll("[data-scope]").forEach(b=>b.addEventListener("click",()=>{cfg.ref="";cfg.books={all:range(0,65),ot:range(0,38),nt:range(39,65)}[b.dataset.scope];buildCand();newPassage()}));
+document.querySelectorAll("[data-len]").forEach(b=>b.addEventListener("click",()=>{cfg.ref="";cfg.len=b.dataset.len;newPassage()}));
+$("newBtn").addEventListener("click",newPassage);$("rNext").addEventListener("click",newPassage);
+$("repeatBtn").addEventListener("click",repeat);$("rRepeat").addEventListener("click",repeat);
+
+// ---------- picker ----------
+let sel=new Set();
+function openModal(){sel=new Set(cfg.books);$("refIn").value=cfg.ref;$("refMsg").textContent="";$("pasteMsg").textContent="";renderPicker();$("modal").hidden=false;syncBlur();$("refIn").focus()}
+function closeModal(){$("modal").hidden=true;focusInput()}
+function renderPicker(){
+  const groups=[["whole bible",0,65],["old testament",0,38],["new testament",39,65],...SECTIONS.map(([n,a,b])=>[n.toLowerCase(),a,b])];
+  $("quick").innerHTML=groups.map(([n,a,b],i)=>{const on=sel.size===b-a+1&&range(a,b).every(x=>sel.has(x));return`<button class="chip${on?" on":""}" data-g="${i}">${esc(n)}</button>`}).join("")+'<button class="chip" data-g="clear">clear</button>';
+  const col=(a,b,t)=>'<div><h3 style="margin-top:0">'+t+"</h3>"+SECTIONS.filter(s=>s[1]>=a&&s[2]<=b).map(([n,x,y])=>'<div class="sec"><b>'+esc(n)+'</b><div class="row">'+range(x,y).map(i=>`<button class="chip${sel.has(i)?" on":""}" data-b="${i}" aria-pressed="${sel.has(i)}">${esc(BOOKS[i])}</button>`).join("")+"</div></div>").join("")+"</div>";
+  $("bookGrid").innerHTML=col(0,38,"old testament")+col(39,65,"new testament");
+  const nv=bible?[...sel].reduce((a,b)=>a+bible[b].reduce((x,c)=>x+c.length,0),0):0;
+  $("selInfo").textContent=sel.size+" book"+(sel.size===1?"":"s")+" · "+nv.toLocaleString()+" verses";
+  $("mDone").disabled=!sel.size;
+  $("quick").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{if(b.dataset.g==="clear")sel.clear();else{const [,a,c]=groups[+b.dataset.g];sel=new Set(range(a,c))}renderPicker()});
+  $("bookGrid").querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{const i=+b.dataset.b;sel.has(i)?sel.delete(i):sel.add(i);renderPicker();const n=$("bookGrid").querySelector(`[data-b="${i}"]`);if(n)n.focus()});
+}
+$("pickBtn").addEventListener("click",openModal);
+$("mCancel").addEventListener("click",closeModal);
+$("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
+$("mDone").addEventListener("click",()=>{cfg.books=[...sel].sort((a,b)=>a-b);cfg.ref="";buildCand();closeModal();newPassage()});
+$("refForm").addEventListener("submit",e=>{e.preventDefault();const r=parseRef($("refIn").value);if(typeof r==="string"){$("refMsg").textContent=r;return}
+  cfg.ref=$("refIn").value.trim();closeModal();load(mk(r));syncConfig()});
+
+// ---------- remote translations ----------
+const remoteCache=new Map();
+const vid=i=>USFM[vb[i]]+"."+(vc[i]+1)+"."+(vv[i]+1);
+const norm=t=>cleanPaste(String(t).replace(/¶/g," "),false);
+function netErr(who){return new Error("Couldn't reach "+who+". Check your internet connection. If you opened index.html straight from your computer and this keeps happening, host the folder instead (see the README).")}
+async function remoteText(info,a,b){
+  const key=cfg.tr+"|"+a+"|"+b;if(remoteCache.has(key))return remoteCache.get(key);
+  let out;
+  if(info.kind==="abs"){
+    const q="content-type=text&include-notes=false&include-titles=false&include-chapter-numbers=false&include-verse-numbers=false&include-verse-spans=false";
+    let r;try{r=await fetch("https://rest.api.bible/v1/bibles/"+encodeURIComponent(info.id)+"/passages/"+vid(a)+"-"+vid(b)+"?"+q,{headers:{"api-key":apiKeys.abs}})}catch(e){throw netErr("API.Bible")}
+    if(!r.ok)throw new Error(r.status===401||r.status===403?"API.Bible didn't accept your key for the "+info.abbr+", or it isn't one of the translations on your plan. Check your key under “add translations with an API key…”.":r.status===404?"The "+info.abbr+" doesn't have "+label(a,b)+". Try another passage.":r.status===429?"You've reached API.Bible's request limit for now. Switch to a built-in translation for a while.":"API.Bible returned an error ("+r.status+"). Try again in a moment.");
+    const j=await r.json();
+    out={text:norm(j.data.content),copy:String(j.data.copyright||"").replace(/\s+/g," ").trim(),link:["https://api.bible","Scripture via API.Bible"],fums:j.meta&&j.meta.fumsToken};
+  }else{
+    const q="q="+encodeURIComponent(BOOKS[vb[a]]+" "+(vc[a]+1)+":"+(vv[a]+1)+"-"+(vc[b]+1)+":"+(vv[b]+1))+"&include-passage-references=false&include-verse-numbers=false&include-first-verse-numbers=false&include-footnotes=false&include-footnote-body=false&include-headings=false&include-short-copyright=false&include-copyright=false&indent-paragraphs=0&indent-poetry=false";
+    let r;try{r=await fetch("https://api.esv.org/v3/passage/text/?"+q,{headers:{Authorization:"Token "+apiKeys.esv}})}catch(e){throw netErr("the ESV API")}
+    if(!r.ok)throw new Error(r.status===401||r.status===403?"The ESV API didn't accept your key. Check it under “add translations with an API key…”.":r.status===429?"You've reached the ESV API's request limit for now. Switch to another translation for a while.":"The ESV API returned an error ("+r.status+"). Try again in a moment.");
+    const j=await r.json();
+    out={text:norm((j.passages||[]).join(" ")),copy:ESV_COPY,link:["https://www.esv.org","esv.org"]};
+  }
+  remoteCache.set(key,out);return out;
+}
+function trackFums(token){
+  if(!window.fums){window.fumsData=window.fumsData||[];window.fums=function(){window.fumsData.push(arguments)};const el=document.createElement("script");el.src="https://pkg.api.bible/fumsV3.min.js";document.head.appendChild(el)}
+  try{window.fums("trackView",token)}catch(e){}
+}
+const POPULAR=/^(NIV|NLT|NKJV|CSB|NASB|ESV|NRSV|AMP|MSG|NIRV|NCV|CEV|GNT|NET|LSB)/i;
+function openKeys(){$("kAbs").value=apiKeys.abs;$("kEsv").value=apiKeys.esv;$("kAbsMsg").textContent="";$("kEsvMsg").textContent="";renderKList();$("keysModal").hidden=false;syncBlur();$("kAbs").focus()}
+function closeKeys(){$("keysModal").hidden=true;renderTrSel();focusInput()}
+function renderKList(){
+  const show=apiKeys.abs&&absList.length;$("kListH").hidden=!show;
+  $("kList").innerHTML=show?absList.map((b,i)=>`<label><input type="checkbox" data-k="${i}" ${b.on?"checked":""}><span>${esc(b.abbr)} <small>${esc(b.name)}</small></span></label>`).join(""):"";
+  $("kList").querySelectorAll("[data-k]").forEach(c=>c.onchange=()=>{absList[+c.dataset.k].on=c.checked;store.set("absBibles",absList)});
+}
+async function saveKeys(){
+  apiKeys.abs=$("kAbs").value.trim();apiKeys.esv=$("kEsv").value.trim();store.set("keys",apiKeys);
+  const am=$("kAbsMsg"),em=$("kEsvMsg");am.className="msg";em.className="msg";
+  if(apiKeys.abs){am.textContent="checking…";
+    try{const r=await fetch("https://rest.api.bible/v1/bibles?language=eng",{headers:{"api-key":apiKeys.abs}});
+      if(!r.ok)throw new Error(r.status===401||r.status===403?"API.Bible didn't accept that key.":"API.Bible returned an error ("+r.status+").");
+      const j=await r.json(),old=new Map(absList.map(b=>[b.id,b.on]));
+      absList=(j.data||[]).map(b=>{const abbr=(b.abbreviationLocal||b.abbreviation||"").trim(),name=(b.nameLocal||b.name||"").trim();return{id:b.id,abbr,name,on:old.has(b.id)?old.get(b.id):POPULAR.test(abbr)}}).sort((x,y)=>(y.on-x.on)||x.abbr.localeCompare(y.abbr));
+      store.set("absBibles",absList);am.className="msg ok";am.textContent="Key works: "+absList.length+" English translations available on it.";
+    }catch(e){am.textContent=e instanceof TypeError?"Couldn't reach API.Bible. Check your connection, or host the folder instead of opening the file directly (see the README).":e.message}
+  }else{absList=[];store.set("absBibles",absList);am.textContent=""}
+  if(apiKeys.esv){em.textContent="checking…";
+    try{const r=await fetch("https://api.esv.org/v3/passage/text/?q=John+11:35&include-passage-references=false",{headers:{Authorization:"Token "+apiKeys.esv}});
+      if(!r.ok)throw new Error(r.status===401||r.status===403?"The ESV API didn't accept that key.":"The ESV API returned an error ("+r.status+").");
+      em.className="msg ok";em.textContent="Key works: the ESV is now in the translation menu.";
+    }catch(e){em.textContent=e instanceof TypeError?"Couldn't reach the ESV API. Check your connection, or host the folder instead of opening the file directly (see the README).":e.message}
+  }else em.textContent="";
+  renderKList();renderTrSel();
+}
+if(SELF){$("kSave").addEventListener("click",saveKeys);$("kDone").addEventListener("click",closeKeys);$("keysModal").addEventListener("click",e=>{if(e.target.id==="keysModal")closeKeys()})}
+
+// ---------- translation menu ----------
+function renderTrSel(){
+  if(!trInfo(cfg.tr))cfg.tr="kjv";
+  const o=(v,t)=>`<option value="${esc(v)}">${esc(t)}</option>`;
+  let h='<optgroup label="built in · public domain">'+Object.entries(TRANS).map(([k,[a,n]])=>o(k,a+" · "+n)).join("")+"</optgroup>";
+  const abs=apiKeys.abs?absList.filter(b=>b.on):[];
+  if(abs.length)h+='<optgroup label="API.Bible">'+abs.map(b=>o("abs:"+b.id,b.abbr+" · "+b.name)).join("")+"</optgroup>";
+  if(apiKeys.esv)h+='<optgroup label="ESV API">'+o("esv","ESV · English Standard Version")+"</optgroup>";
+  h+='<optgroup label="more">'+(SELF?o("__keys","+ add translations with an API key…"):"")+o("__paste","paste your own text…")+"</optgroup>";
+  const s=$("trSel");s.innerHTML=h;s.value=cfg.tr;
+}
+$("trSel").addEventListener("change",e=>{const v=e.target.value;
+  if(v==="__keys"||v==="__paste"){e.target.value=cfg.tr;if(v==="__keys")openKeys();else{openModal();$("pasteIn").focus()}return}
+  switchTr(v)});
+
+// ---------- translations ----------
+let switching=0;
+function useBible(B){bible=B;index();if(!cfg.books.length)cfg.books=range(0,65);buildCand()}
+function switchTr(code){
+  if(code===cfg.tr||!trInfo(code))return;
+  const id=++switching,prev=P&&P.mode!=="custom"&&bible?[vb[P.a],vc[P.a],vv[P.a],vb[P.b],vc[P.b],vv[P.b]]:null;
+  cfg.tr=code;syncConfig();$("refText").textContent="opening the "+trInfo(code).abbr+"…";
+  loadTr(structOf(code)).then(B=>{
+    if(id!==switching)return;useBible(B);
+    if(P&&P.mode==="custom"){load(P);syncConfig();return}
+    if(!prev){newPassage();return}
+    const at=(b,c,v)=>{const ch=bible[b][c]||bible[b][bible[b].length-1];return chStart[b][Math.min(c,bible[b].length-1)]+Math.min(v,ch.length-1)};
+    const a=at(prev[0],prev[1],prev[2]),e=at(prev[3],prev[4],prev[5]);
+    load(mk({a,b:Math.max(a,e),mode:P.mode,kind:P.kind}));syncConfig();
+  }).catch(()=>{$("refText").textContent="That translation could not be loaded. Try again."});
+}
+function cleanPaste(t,strip){
+  t=t.replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/[—–]/g,"-").replace(/…/g,"...").normalize("NFKD").replace(/[\u0300-\u036f]/g,"");
+  if(strip)t=t.replace(/\[[a-z]{1,2}\]|\([A-Z]{1,2}\)/g,"").replace(/(^|\n)\s*\d{1,3}\s+/g,"$1").replace(/(^|\s)\d{1,3}(?=[A-Za-z"'(])/g,"$1").replace(/([.;:,?!"'])\s+\d{1,3}\s+(?=[A-Z"'(])/g,"$1 ");
+  return t.replace(/[^\x20-\x7e\n]/g,"").replace(/\s+/g," ").trim();
+}
+$("pasteForm").addEventListener("submit",e=>{e.preventDefault();
+  const text=cleanPaste($("pasteIn").value,$("pasteClean").checked),n=text?text.split(" ").length:0;
+  if(!n){$("pasteMsg").textContent="Paste some text first.";return}
+  if(n>3000){$("pasteMsg").textContent="That's "+n+" words. Keep it under 3,000.";return}
+  cfg.ref="";closeModal();load({mode:"custom",text,label:$("pasteLbl").value.trim()||"Your passage"});syncConfig()});
+
+// ---------- keys ----------
+document.addEventListener("keydown",e=>{
+  if(!$("keysModal").hidden){if(e.key==="Escape")closeKeys();return}
+  if(!$("modal").hidden){if(e.key==="Escape")closeModal();return}
+  const ae=document.activeElement;
+  if(!$("result").hidden){
+    if(e.key==="Escape"){e.preventDefault();repeat()}
+    else if(e.key==="Enter"&&!(ae&&ae.tagName==="BUTTON"&&ae!==$("rNext"))){e.preventDefault();newPassage()}
+    return;
+  }
+  if(e.key==="Escape"){e.preventDefault();repeat();return}
+  if(e.key==="Tab"&&ae===hid&&!e.shiftKey){e.preventDefault();$("newBtn").focus();return}
+  if(ae!==hid&&e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!(ae&&(ae.tagName==="BUTTON"||ae.tagName==="INPUT")&&(e.key===" "||e.key==="Enter"))&&!(ae&&ae.tagName==="INPUT")){focusInput()}
+});
+window.addEventListener("focus",()=>setTimeout(syncBlur,0));
+document.addEventListener("focusin",syncBlur);
+
+// ---------- boot ----------
+syncConfig();
+loadTr(structOf(cfg.tr)).then(B=>{
+  useBible(B);
+  let p=null;if(cfg.ref){const r=parseRef(cfg.ref);if(typeof r!=="string")p=mk(r);else cfg.ref=""}
+  load(p||randomPassage());syncConfig();
+  document.fonts&&document.fonts.ready.then(layout);
+}).catch(()=>{$("refText").textContent="The Bible text could not be loaded. Refresh to try again."});
+}
+</script>
+</body>
+</html>
