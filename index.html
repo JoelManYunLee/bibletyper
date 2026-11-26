@@ -34,7 +34,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--main);outline-o
 svg.i{width:1em;height:1em;vertical-align:-.12em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .wrap{width:100%;max-width:1440px;margin:0 auto;padding:0 clamp(16px,4vw,64px)}
 
-header{padding-top:28px}
+header{padding-top:28px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mpBtn{display:inline-flex;align-items:center;gap:8px;background:var(--panel);color:var(--sub);text-decoration:none;font-size:13px;padding:8px 14px;min-height:36px;border-radius:10px;transition:color .15s}
+.mpBtn:hover,.mpBtn:focus-visible{color:var(--main)}
 .logo{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}
 .logo svg{width:40px;height:30px;color:var(--main)}
 .logo b{font:600 34px/1 var(--serif);letter-spacing:.01em}
@@ -171,6 +173,7 @@ kbd{font:11px var(--mono);background:var(--sub);color:var(--bg);border-radius:4p
     <svg viewBox="0 0 40 30" aria-hidden="true"><path d="M20 6C15 2 8 2 3 4v22c5-2 12-2 17 2 5-4 12-4 17-2V4c-5-2-12-2-17 2Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M20 6v22M8 10h7M8 15h7M25 10h7M25 15h7M25 20h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     <div><b>bibletyper</b><small>type the word, word by word</small></div>
   </a>
+  <a class="mpBtn" href="multiplayer.html"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg> multiplayer</a>
 </header>
 
 <nav id="config" class="wrap" aria-label="Test settings">

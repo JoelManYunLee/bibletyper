@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bibletyper · multiplayer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* TO_DO: move the shared rules from index.html into style.css and link it from both pages */
+:root{color-scheme:dark;
+  --bg:light-dark(#f4f4f0,#2a2622);
+  --panel:light-dark(#e8e8e4,#221e1a);
+  --sub:light-dark(#888888,#a09890);
+  --ink:light-dark(#222222,#eae8e0);
+  --main:light-dark(#b07030,#d4a96a);
+  --err:light-dark(#b5541a,#e0884a);
+  --mono:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+  --serif:"Cormorant Garamond",Georgia,serif}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.5 var(--mono);display:flex;flex-direction:column}
+button,input,select{font:inherit;color:inherit}
+.wrap{width:100%;max-width:1100px;margin:0 auto;padding:0 clamp(16px,4vw,64px)}
+header{padding-top:28px;display:flex;justify-content:space-between;align-items:center}
+.logo{color:var(--ink);text-decoration:none;font:600 34px/1 var(--serif)}
+.back{color:var(--sub);text-decoration:none;font-size:13px}
+.back:hover{color:var(--main)}
+main{flex:1;padding:40px 0}
+section[hidden]{display:none}
+h2{font:600 32px/1.05 var(--serif);margin:0 0 16px}
+h3{font:500 13px var(--mono);color:var(--sub);margin:22px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select{background:var(--panel);border:1px solid transparent;border-radius:8px;padding:10px 12px;min-height:44px}
+.btn{background:var(--panel);border:0;border-radius:8px;padding:10px 16px;min-height:44px;cursor:pointer}
+.btn:hover{color:var(--main)}
+.btn.pri{background:var(--main);color:var(--bg)}
+.btn:disabled{opacity:.45;cursor:default}
+.msg{min-height:20px;font-size:13px;color:var(--err);margin-top:6px}
+.code{font-size:28px;letter-spacing:.2em;color:var(--main)}
+#players{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+#players li{background:var(--panel);border-radius:8px;padding:10px 14px}
+.track{background:var(--panel);border-radius:8px;height:10px;overflow:hidden}
+.track>i{display:block;height:100%;background:var(--main);width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <a class="logo" href="index.html">bibletyper</a>
+  <a class="back" href="index.html">← solo practice</a>
+</header>
+
+<main class="wrap">
+  <section id="vHome" aria-label="Multiplayer">
+    <h2>Multiplayer</h2>
+    <h3>your name</h3>
+    <div class="row"><input id="nameIn" maxlength="20" placeholder="name" autocomplete="nickname"></div>
+    <h3>race strangers</h3>
+    <div class="row"><button class="btn pri" id="quickBtn">quick play</button></div>
+    <h3>play with friends — up to 6 players</h3>
+    <div class="row">
+      <button class="btn" id="createBtn">create private lobby</button>
+      <form class="row" id="joinForm"><input id="codeIn" maxlength="5" placeholder="lobby code" autocomplete="off" spellcheck="false"><button class="btn" type="submit">join</button></form>
+    </div>
+    <div class="msg" id="homeMsg"></div>
+  </section>
+
+  <section id="vLobby" hidden aria-label="Lobby">
+    <h2>Lobby <span class="code" id="lobbyCode"></span></h2>
+    <div class="row" id="settings">
+      <select id="trSel"><option value="kjv">KJV</option><option value="bsb">BSB</option><option value="web">WEB</option><option value="asv">ASV</option></select>
+      <select id="lenSel"><option value="short">short</option><option value="medium" selected>medium</option><option value="long">long</option></select>
+    </div>
+    <h3 id="playerCount"></h3>
+    <ul id="players"></ul>
+    <div class="row" style="margin-top:20px"><button class="btn pri" id="startBtn">start race</button><button class="btn" id="leaveBtn">leave</button></div>
+    <div class="msg" id="lobbyMsg"></div>
+  </section>
+
+  <section id="vRace" hidden aria-label="Race">
+    <div id="countdown"></div>
+    <div id="raceRef"></div>
+    <div id="tracks"></div>
+    <!-- TO_DO: typing box, shared with index.html once the engine is extracted -->
+  </section>
+
+  <section id="vResults" hidden aria-label="Race results">
+    <h2>Results</h2>
+    <ol id="standings"></ol>
+    <div class="row"><button class="btn pri" id="backLobbyBtn">back to lobby</button></div>
+  </section>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="multiplayer.js"></script>
+</body>
+</html>

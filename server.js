@@ -1,10 +1,15 @@
 const express = require("express");
+const http = require("http");
 const path = require("path");
+const { Server } = require("socket.io");
+const lobbies = require("./lobby");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
-const ALLOWED = new Set(["/index.html", "/kjv.js", "/bsb.js", "/web.js", "/asv.js"]);
+const ALLOWED = new Set(["/index.html", "/multiplayer.html", "/multiplayer.js", "/kjv.js", "/bsb.js", "/web.js", "/asv.js"]);
 
 // Only serve the app files, never server.js, package.json, or .git.
 app.use((req, res, next) => {
@@ -16,4 +21,6 @@ app.use((req, res, next) => {
 
 app.use((req, res) => res.status(404).send("Not found"));
 
-app.listen(PORT, () => console.log(`bibletyper listening on port ${PORT}`));
+lobbies.attach(io);
+
+server.listen(PORT, () => console.log(`bibletyper listening on port ${PORT}`));
