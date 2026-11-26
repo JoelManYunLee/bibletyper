@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="engine.css" rel="stylesheet">
 <style>
 /* VOICE: quiet, reverent, focused: a typing desk with nothing in the way of the words
    IDEA: a scribe's copying page; the passage is the whole screen, copied word by word
@@ -55,7 +56,6 @@ header{padding-top:28px;display:flex;justify-content:space-between;align-items:c
 .sel select option,.sel select optgroup{background:var(--bg);color:var(--ink);font:14px var(--mono)}
 .sel svg{position:absolute;right:14px;top:50%;margin-top:-.5em;color:var(--sub);pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.msgline{color:var(--sub);font-size:17px;line-height:1.6;max-width:70ch}
 .copy{text-align:center;color:var(--sub);font-size:11px;line-height:1.5;margin:10px auto 0;max-width:90ch;opacity:.85}
 .copy a{color:inherit}
 .klist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 16px;max-height:280px;overflow:auto;margin-top:6px}
@@ -69,25 +69,6 @@ main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32
 #test,#result{width:100%}
 .ref{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--sub);font:italic 500 22px/1.2 var(--serif);margin-bottom:14px;text-align:center}
 .ref svg{flex:none;color:var(--olive)}
-#live{height:32px;display:flex;gap:28px;color:var(--main);font-size:22px;padding-left:4px;opacity:0;transition:opacity .2s}
-#live.show{opacity:1}
-#box{position:relative;overflow:hidden;height:calc(var(--fs) * 1.7 * 3);--fs:clamp(20px,1.1vw + 12px,30px);font-size:var(--fs)}
-#words{position:relative;display:flex;flex-wrap:wrap;line-height:1.7;transition:transform .15s ease;user-select:none}
-.word{margin-right:.6em;color:var(--sub);white-space:nowrap;border-bottom:2px solid transparent;line-height:1.5;margin-block:.1em}
-.word span{transition:color .05s}
-.word .ok,.word.done span{color:var(--ink)}
-.word .bad{color:var(--err)}
-.word .x{color:var(--errx)}
-#box.hide.started .word:not(.done) span:not(.ok):not(.bad):not(.x){color:transparent;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--sub) 40%,transparent)}
-.word.err{border-bottom-color:color-mix(in srgb,var(--err) 55%,transparent)}
-.word.shake{animation:shake .22s}
-@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-#caret{position:absolute;left:0;top:0;width:3px;height:1.2em;margin-top:.15em;background:var(--main);border-radius:2px;transition:transform .09s linear;pointer-events:none}
-#caret.idle{animation:blink 1s step-end infinite}
-@keyframes blink{50%{opacity:0}}
-#blur{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:10px;font-size:16px;color:var(--ink);cursor:pointer;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);background:color-mix(in srgb,var(--bg) 30%,transparent)}
-#box.blurred #blur{display:flex}
-#hid{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0}
 .actions{display:flex;justify-content:center;gap:8px;margin-top:22px}
 .ibtn{width:48px;height:48px;display:grid;place-items:center;color:var(--sub);font-size:20px}
 .ibtn:hover,.ibtn:focus-visible{color:var(--ink);background:var(--panel)}
@@ -161,10 +142,8 @@ kbd{font:11px var(--mono);background:var(--sub);color:var(--bg);border-radius:4p
   .res-top{grid-template-columns:minmax(0,1fr)}
   .big{flex-direction:row;flex-wrap:wrap;gap:6px 28px}
   .books{grid-template-columns:minmax(0,1fr)}
-  #live{font-size:18px;gap:18px}
   header{padding-top:18px}
 }
-@media(prefers-reduced-motion:reduce){#words,#caret{transition:none}.word.shake{animation:none}}
 </style>
 </head>
 <body>
@@ -290,13 +269,12 @@ kbd{font:11px var(--mono);background:var(--sub);color:var(--bg);border-radius:4p
   <div class="cred"><span id="cred">King James Version · public domain</span><span>you cannot move on until each word is typed correctly</span></div>
 </footer>
 
+<script src="passage.js"></script>
+<script src="engine.js"></script>
 <script>
 {
-const BOOKS=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
-const SECTIONS=[["Law",0,4],["History",5,16],["Poetry & Wisdom",17,21],["Major Prophets",22,26],["Minor Prophets",27,38],["Gospels",39,42],["Acts",43,43],["Pauline Epistles",44,56],["General Epistles",57,64],["Revelation",65,65]];
-const LENS={short:[20,45],medium:[50,100],long:[110,200]};
-const ALIAS={ps:"Psalms",psa:"Psalms",psalm:"Psalms",pss:"Psalms",songofsongs:"Song of Solomon",song:"Song of Solomon",canticles:"Song of Solomon",jn:"John",jhn:"John",mk:"Mark",mrk:"Mark",mt:"Matthew",mat:"Matthew",lk:"Luke",luk:"Luke",jas:"James",jm:"James",phil:"Philippians",php:"Philippians",phm:"Philemon",philem:"Philemon",jud:"Judges",jdg:"Judges",rev:"Revelation",revelations:"Revelation",ecc:"Ecclesiastes",qoh:"Ecclesiastes",ezk:"Ezekiel",eze:"Ezekiel",sos:"Song of Solomon",judg:"Judges"};
-const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const {BOOKS,SECTIONS,range}=VTPassage;
+const fmtT=VTEngine.fmtT;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k,d){try{const v=localStorage.getItem("vt:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("vt:"+k,JSON.stringify(v))}catch(e){}}};
@@ -317,87 +295,30 @@ if(!trInfo(cfg.tr))cfg.tr="kjv";
 const saveCfg=()=>store.set("cfg",cfg);
 
 // ---------- data ----------
-let bible=null,vb,vc,vv,chStart,cand=[];
-const wc=s=>s?s.split(" ").length:0;
+let K=null,bible=null,vb,vc,vv,chStart,cand=[];
 const cache={};
 const getRows=code=>SELF?new Promise((res,rej)=>{const D=window.VT_DATA||{};if(D[code])return res(D[code]);const el=document.createElement("script");el.src=code+".js";el.onload=()=>window.VT_DATA&&VT_DATA[code]?res(VT_DATA[code]):rej(new Error("missing"));el.onerror=()=>rej(new Error("missing"));document.head.appendChild(el)}):fetch(code+".json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
 const structOf=code=>TRANS[code]?code:"kjv";
-const loadTr=code=>cache[code]||(cache[code]=getRows(code).then(rows=>{const B=BOOKS.map(()=>[]);for(const [b,c,vs] of rows)B[b][c-1]=vs;return B}).catch(e=>{delete cache[code];throw e}));
+const loadTr=code=>cache[code]||(cache[code]=getRows(code).then(VTPassage.fromRows).catch(e=>{delete cache[code];throw e}));
 const tag=p=>p.mode==="custom"?"":" · "+trInfo(cfg.tr).abbr;
-function index(){
-  let n=0;bible.forEach(b=>b.forEach(c=>n+=c.length));
-  vb=new Uint8Array(n);vc=new Uint16Array(n);vv=new Uint16Array(n);chStart=bible.map(()=>[]);
-  let i=0;bible.forEach((b,bi)=>b.forEach((c,ci)=>{chStart[bi][ci]=i;c.forEach((_,k)=>{vb[i]=bi;vc[i]=ci;vv[i]=k;i++})}));
-}
-const verse=i=>bible[vb[i]][vc[i]][vv[i]];
-const sameCh=(i,j)=>vb[i]===vb[j]&&vc[i]===vc[j];
-const ends=i=>/[.?!][)']?$/.test(verse(i));
-function buildCand(){const s=new Set(cfg.books);cand=[];for(let i=0;i<vb.length;i++)if(s.has(vb[i])&&verse(i))cand.push(i)}
-const bname=(b,single)=>single&&b===18?"Psalm":BOOKS[b];
-function label(a,b){
-  const B=vb[a],C=vc[a]+1,V=vv[a]+1,last=bible[vb[b]][vc[b]].length;
-  if(sameCh(a,b)&&vv[a]===0&&vv[b]===last-1)return bname(B,1)+" "+C;
-  if(sameCh(a,b))return bname(B,1)+" "+C+":"+V+(a===b?"":"–"+(vv[b]+1));
-  if(vb[a]===vb[b])return BOOKS[B]+" "+C+":"+V+"–"+(vc[b]+1)+":"+(vv[b]+1);
-  return BOOKS[B]+" "+C+":"+V+" – "+BOOKS[vb[b]]+" "+(vc[b]+1)+":"+(vv[b]+1);
-}
-function randomPassage(){
-  const [mn,mx]=LENS[cfg.len];let a=cand[0];
-  for(let t=0;t<40;t++){a=cand[Math.floor(Math.random()*cand.length)];if(vv[a]===0||ends(a-1))break}
-  let b=a,w=wc(verse(a));
-  while((w<mn||(!ends(b)&&w<mx))&&b+1<vb.length&&sameCh(b+1,a)){if(w>=mn&&w+wc(verse(b+1))>mx*1.4)break;b++;w+=wc(verse(b))}
-  while(w<mn&&a>0&&sameCh(a-1,b)){a--;w+=wc(verse(a))}
-  return{a,b,mode:"random",label:label(a,b)};
-}
-function findBook(q){
-  const n=q.toLowerCase().replace(/[^a-z0-9]/g,"");if(!n)return -1;
-  const norm=BOOKS.map(b=>b.toLowerCase().replace(/[^a-z0-9]/g,""));
-  if(ALIAS[n])return BOOKS.indexOf(ALIAS[n]);
-  let i=norm.indexOf(n);if(i>=0)return i;
-  const m=n.match(/^([123])(.*)$/);
-  if(m&&ALIAS[m[2]]){i=norm.indexOf(m[1]+ALIAS[m[2]].toLowerCase());if(i>=0)return i}
-  return norm.findIndex(b=>b.startsWith(n));
-}
-function parseRef(str){
-  const s=str.trim().replace(/[–—]/g,"-");
-  const m=s.match(/^(.+?)\s*(\d+)?(?:\s*:\s*(\d+)(?:\s*-\s*(?:(\d+)\s*:\s*)?(\d+))?)?$/);
-  if(!m)return"Try something like “John 3:16-21” or “Psalm 23”.";
-  let name=m[1],ch=m[2];
-  if(!ch&&/\d$/.test(name)){const k=name.match(/^(.*\D)(\d+)$/);if(k){name=k[1];ch=k[2]}}
-  const b=findBook(name);if(b<0)return"I couldn’t find a book called “"+name.trim()+"”.";
-  const c=(+ch||1)-1;if(!bible[b][c])return BOOKS[b]+" has "+bible[b].length+" chapter"+(bible[b].length>1?"s":"")+".";
-  if(!m[3]){const a=chStart[b][c];return{a,b:a+bible[b][c].length-1,mode:"ref",kind:"chapter"}}
-  const v1=+m[3]-1;if(!bible[b][c][v1])return BOOKS[b]+" "+(c+1)+" has "+bible[b][c].length+" verses.";
-  const c2=m[4]?+m[4]-1:c,v2=m[5]?+m[5]-1:v1;
-  if(!bible[b][c2]||!bible[b][c2][v2])return"That range runs past the end of the chapter.";
-  const a=chStart[b][c]+v1,e=chStart[b][c2]+v2;if(e<a)return"The range ends before it starts.";
-  return{a,b:e,mode:"ref",kind:"verses"};
-}
-function nextRef(p){
-  const N=vb.length;
-  if(p.kind==="chapter"){const a=(p.b+1)%N;return mk({a,b:a+bible[vb[a]][vc[a]].length-1,mode:"ref",kind:"chapter"})}
-  const span=p.b-p.a,a=(p.b+1)%N;let b=a;while(b-a<span&&b+1<N&&vb[b+1]===vb[a])b++;
-  return mk({a,b,mode:"ref",kind:"verses"});
-}
-const mk=p=>(p.label=label(p.a,p.b),p);
-function passageText(p,raw){
-  let t="";if(p.mode==="custom")t=p.text;else if(raw!=null)t=raw;else for(let i=p.a;i<=p.b;i++)if(verse(i))t+=(t?" ":"")+verse(i);
-  if(!cfg.punct)t=t.replace(/-/g," ").replace(/[^A-Za-z0-9' ]/g,"").replace(/(^|\s)'+|'+(?=\s|$)/g,"$1");
-  if(!cfg.caps)t=t.toLowerCase();
-  return t.replace(/\s+/g," ").trim();
-}
+const label=(a,b)=>K.label(a,b);
+const mk=p=>K.mk(p);
+const parseRef=s=>K.parseRef(s);
+const nextRef=p=>K.nextRef(p);
+const randomPassage=()=>K.randomPassage(cand,cfg.len);
+function buildCand(){cand=K.candidates(cfg.books)}
+function passageText(p,raw){return VTPassage.shape(p.mode==="custom"?p.text:raw!=null?raw:K.text(p.a,p.b),cfg)}
 
 // ---------- typing engine ----------
-const box=$("box"),wordsEl=$("words"),caret=$("caret"),hid=$("hid");
-let P=null,words=[],wEls=[],wi=0,typed="",wErr=[],keys=[],t0=0,running=false,finished=false,lineStep=0,liveTimer=0,lastKey=0;
-let C={ok:0,bad:0,extra:0};
-let loadId=0;
+const box=$("box"),hid=$("hid");
+const engine=VTEngine.create({box,words:$("words"),caret:$("caret"),input:hid,live:$("live"),prog:$("lProg"),wpm:$("lWpm"),time:$("lTime")},{finish:showResult});
+let P=null,loadId=0;
 function setCopy(text,link){for(const id of["copyLine","rCopy"]){const el=$(id);el.textContent=text||"";if(link){if(text)el.append(" · ");const a=document.createElement("a");a.href=link[0];a.target="_blank";a.rel="noopener";a.textContent=link[1];el.append(a)}}}
-function showMsg(m){words=[];wEls=[];wordsEl.innerHTML='<div class="msgline"></div>';wordsEl.firstChild.textContent=m;wordsEl.appendChild(caret);caret.style.visibility="hidden";wordsEl.style.transform="";box.style.height="";showTest()}
+function showMsg(m){engine.showMsg(m);showTest()}
 function load(p){
   P=p;const id=++loadId,info=trInfo(cfg.tr);
   $("refText").textContent=p.label+tag(p);setCopy("");
-  clearInterval(liveTimer);$("live").classList.remove("show");finished=false;running=false;
+  engine.stop();
   if(p.mode!=="custom"&&info.kind!=="local"){
     showMsg("opening "+p.label+" in the "+info.abbr+"…");
     remoteText(info,p.a,p.b).then(r=>{if(id!==loadId)return;setCopy(r.copy,r.link);if(r.fums)trackFums(r.fums);begin(r.text)}).catch(e=>{if(id===loadId)showMsg(e.message)});
@@ -406,106 +327,19 @@ function load(p){
   begin(null);
 }
 function begin(raw){
-  const p=P;caret.style.visibility="";
-  words=passageText(p,raw).split(" ").filter(Boolean);
-  if(!words.length){showMsg("This passage came back empty in this translation. Try another passage.");return}
-  box.classList.remove("started");box.classList.toggle("hide",!!cfg.hide);wi=0;typed="";wErr=words.map(()=>false);keys=[];t0=0;running=false;finished=false;C={ok:0,bad:0,extra:0};
-  clearInterval(liveTimer);$("live").classList.remove("show");
-  wordsEl.innerHTML=words.map(w=>'<div class="word">'+[...w].map(ch=>"<span>"+esc(ch)+"</span>").join("")+"</div>").join("");
-  wordsEl.appendChild(caret);caret.className="idle";
-  wEls=[...wordsEl.querySelectorAll(".word")];
-  hid.value="";showTest();layout();updLive();
+  showTest();
+  if(!engine.begin(passageText(P,raw),cfg.hide))showMsg("This passage came back empty in this translation. Try another passage.");
 }
 function showTest(){$("result").hidden=true;$("test").hidden=false;focusInput()}
 function focusInput(){if($("modal").hidden&&$("keysModal").hidden&&!$("test").hidden){hid.focus({preventScroll:true})}syncBlur()}
 function syncBlur(){box.classList.toggle("blurred",document.activeElement!==hid)}
-function layout(){
-  if(!wEls.length)return;
-  const t0p=wEls[0].offsetTop;const nxt=wEls.find(e=>e.offsetTop>t0p+2);
-  lineStep=nxt?nxt.offsetTop-t0p:wEls[0].offsetHeight*1.13;
-  box.style.height=Math.round(lineStep*3)+"px";
-  scrollLine();placeCaret();
-}
-function scrollLine(){
-  const el=wEls[wi];if(!el)return;
-  const line=Math.round((el.offsetTop-wEls[0].offsetTop)/lineStep);
-  wordsEl.style.transform="translateY("+(-Math.max(0,line-1)*lineStep)+"px)";
-}
-function placeCaret(){
-  const el=wEls[wi];if(!el)return;const sp=el.children,wr=el.getBoundingClientRect();let r,x;
-  if(typed.length<sp.length){r=sp[typed.length].getBoundingClientRect();x=r.left}
-  else{r=sp[sp.length-1].getBoundingClientRect();x=r.right}
-  x=el.offsetLeft+x-wr.left;const y=el.offsetTop+r.top-wr.top;
-  caret.style.transform="translate("+x+"px,"+y+"px)";
-}
-function renderWord(){
-  const w=words[wi],el=wEls[wi];let h="";
-  for(let k=0;k<Math.max(w.length,typed.length);k++){
-    if(k>=w.length)h+='<span class="x">'+esc(typed[k])+"</span>";
-    else h+="<span"+(k<typed.length?(typed[k]===w[k]?' class="ok"':' class="bad"'):"")+">"+esc(w[k])+"</span>";
-  }
-  el.innerHTML=h;placeCaret();
-}
-function start(){box.classList.add("started");t0=performance.now();running=true;$("live").classList.add("show");liveTimer=setInterval(updLive,250)}
-function now(){return(performance.now()-t0)/1000}
-function updLive(){
-  $("lProg").textContent=wi+"/"+words.length;
-  if(!running){$("lWpm").textContent="";$("lTime").textContent="";return}
-  const t=now();$("lTime").textContent=fmtT(t);
-  $("lWpm").textContent=t>1?Math.round(C.ok/5/(t/60))+" wpm":"";
-  caret.classList.toggle("idle",performance.now()-lastKey>600);
-}
-const fmtT=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
-function key(ch){
-  const w=words[wi];
-  if(ch===" "){
-    if(!typed)return;
-    if(!running)start();
-    if(typed===w){keys.push([now(),1]);C.ok++;advance()}
-    else{keys.push([now(),0]);C.bad++;wErr[wi]=true;const el=wEls[wi];el.classList.remove("shake");void el.offsetWidth;el.classList.add("shake")}
-    return;
-  }
-  if(!running)start();
-  const pos=typed.length,good=typed===w.slice(0,pos)&&w[pos]===ch;
-  keys.push([now(),good?1:0]);
-  if(good)C.ok++;else{wErr[wi]=true;pos>=w.length?C.extra++:C.bad++}
-  if(typed.length<w.length+12)typed+=ch;
-  if(wi===words.length-1&&typed===w){renderWord();finish();return}
-}
-function advance(){
-  const el=wEls[wi];el.innerHTML=[...words[wi]].map(c=>"<span>"+esc(c)+"</span>").join("");
-  el.classList.add("done");if(wErr[wi])el.classList.add("err");
-  wi++;typed="";scrollLine();placeCaret();updLive();
-}
-hid.addEventListener("input",()=>{
-  if(finished||!P||!words.length){hid.value="";return}const v=hid.value;lastKey=performance.now();caret.classList.remove("idle");
-  let common=0;while(common<v.length&&common<typed.length&&v[common]===typed[common])common++;
-  if(common<typed.length)typed=typed.slice(0,common);
-  for(const ch of v.slice(common)){key(ch);if(finished)return}
-  hid.value=typed;renderWord();
-});
-hid.addEventListener("paste",e=>e.preventDefault());
 hid.addEventListener("focus",syncBlur);hid.addEventListener("blur",syncBlur);
 box.addEventListener("click",focusInput);
-wordsEl.addEventListener("animationend",placeCaret);
 
 // ---------- results ----------
 let R=null;
-function finish(){
-  finished=true;running=false;clearInterval(liveTimer);
-  const T=Math.max(now(),.1),chars=words.join(" ").length,ks=keys.length,good=keys.filter(k=>k[1]).length;
-  const n=Math.floor(T)>=1&&T-Math.floor(T)<.5?Math.floor(T):Math.ceil(T);
-  const edges=range(0,n).map(i=>Math.min(i,T));edges[n]=T;
-  const series=[];
-  for(let s=1;s<=n;s++){
-    const lo=edges[s-1],hi=edges[s],dur=Math.max(hi-lo,.2);
-    const inB=keys.filter(k=>(s===1?k[0]>=0:k[0]>lo)&&k[0]<=hi);
-    const cum=keys.filter(k=>k[0]<=hi&&k[1]).length;
-    series.push({t:hi,wpm:cum/5/(Math.max(hi,.5)/60),raw:inB.length/5/(dur/60),err:inB.filter(k=>!k[1]).length});
-  }
-  const raws=series.map(s=>s.raw),mean=raws.reduce((a,b)=>a+b,0)/raws.length,sd=Math.sqrt(raws.reduce((a,b)=>a+(b-mean)**2,0)/raws.length);
-  const clean=wErr.filter(e=>!e).length;
-  R={T,wpm:chars/5/(T/60),raw:ks/5/(T/60),acc:ks?good/ks*100:100,wacc:clean/words.length*100,clean,series,cons:mean?Math.max(0,100*(1-sd/mean)):0};
+function showResult(r){
+  R=r;const {words,wErr,C}=r;
   const hist=store.get("hist",[]),prevBest=hist.reduce((m,h)=>Math.max(m,h.wpm),0);
   hist.push({t:Date.now(),wpm:Math.round(R.wpm*10)/10,acc:Math.round(R.acc),ref:P.label+tag(P)});while(hist.length>200)hist.shift();store.set("hist",hist);
   $("rWpm").textContent=Math.round(R.wpm);$("rWpm").title=R.wpm.toFixed(2)+" wpm";
@@ -548,7 +382,6 @@ function drawChart(){
   hit.addEventListener("pointermove",move);hit.addEventListener("pointerleave",()=>{tip.style.display="none";xh.setAttribute("visibility","hidden")});
 }
 const chartRO=new ResizeObserver(drawChart);chartRO.observe($("fig"));
-const layoutRO=new ResizeObserver(()=>layout());layoutRO.observe(box);
 
 // ---------- config UI ----------
 function scopeName(){
@@ -672,7 +505,7 @@ $("trSel").addEventListener("change",e=>{const v=e.target.value;
 
 // ---------- translations ----------
 let switching=0;
-function useBible(B){bible=B;index();if(!cfg.books.length)cfg.books=range(0,65);buildCand()}
+function useBible(B){K=B;({bible,vb,vc,vv,chStart}=K);if(!cfg.books.length)cfg.books=range(0,65);buildCand()}
 function switchTr(code){
   if(code===cfg.tr||!trInfo(code))return;
   const id=++switching,prev=P&&P.mode!=="custom"&&bible?[vb[P.a],vc[P.a],vv[P.a],vb[P.b],vc[P.b],vv[P.b]]:null;
@@ -720,7 +553,7 @@ loadTr(structOf(cfg.tr)).then(B=>{
   useBible(B);
   let p=null;if(cfg.ref){const r=parseRef(cfg.ref);if(typeof r!=="string")p=mk(r);else cfg.ref=""}
   load(p||randomPassage());syncConfig();
-  document.fonts&&document.fonts.ready.then(layout);
+  document.fonts&&document.fonts.ready.then(engine.layout);
 }).catch(()=>{$("refText").textContent="The Bible text could not be loaded. Refresh to try again."});
 }
 </script>

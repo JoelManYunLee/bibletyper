@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
-const ALLOWED = new Set(["/index.html", "/multiplayer.html", "/multiplayer.js", "/kjv.js", "/bsb.js", "/web.js", "/asv.js"]);
+const ALLOWED = new Set(["/index.html", "/multiplayer.html", "/multiplayer.js", "/passage.js", "/engine.js", "/engine.css", "/kjv.js", "/bsb.js", "/web.js", "/asv.js"]);
 
 // Only serve the app files, never server.js, package.json, or .git.
 app.use((req, res, next) => {

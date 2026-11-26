@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="engine.css" rel="stylesheet">
 <style>
 /* TO_DO: move the shared rules from index.html into style.css and link it from both pages */
 :root{color-scheme:dark;
@@ -16,6 +17,7 @@
   --ink:light-dark(#222222,#eae8e0);
   --main:light-dark(#b07030,#d4a96a);
   --err:light-dark(#b5541a,#e0884a);
+  --errx:light-dark(#d9a07a,#9a5a26);
   --mono:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
   --serif:"Cormorant Garamond",Georgia,serif}
 *{box-sizing:border-box;min-width:0}
@@ -81,7 +83,12 @@ input,select{background:var(--panel);border:1px solid transparent;border-radius:
     <div id="countdown"></div>
     <div id="raceRef"></div>
     <div id="tracks"></div>
-    <!-- TO_DO: typing box, shared with index.html once the engine is extracted -->
+    <div id="live"><span id="lProg">0/0</span><span id="lWpm"></span><span id="lTime"></span></div>
+    <div id="box">
+      <div id="words"><div id="caret" class="idle"></div></div>
+      <div id="blur">click here or press any key to focus</div>
+      <input id="hid" aria-label="Type the passage here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    </div>
   </section>
 
   <section id="vResults" hidden aria-label="Race results">
@@ -92,6 +99,7 @@ input,select{background:var(--panel);border:1px solid transparent;border-radius:
 </main>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="engine.js"></script>
 <script src="multiplayer.js"></script>
 </body>
 </html>

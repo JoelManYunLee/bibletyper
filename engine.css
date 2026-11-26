@@ -1,0 +1,23 @@
+/* Typing box styles, shared by index.html and multiplayer.html. Colours come from the page's :root variables. */
+.msgline{color:var(--sub);font-size:17px;line-height:1.6;max-width:70ch}
+#live{height:32px;display:flex;gap:28px;color:var(--main);font-size:22px;padding-left:4px;opacity:0;transition:opacity .2s}
+#live.show{opacity:1}
+#box{position:relative;overflow:hidden;height:calc(var(--fs) * 1.7 * 3);--fs:clamp(20px,1.1vw + 12px,30px);font-size:var(--fs)}
+#words{position:relative;display:flex;flex-wrap:wrap;line-height:1.7;transition:transform .15s ease;user-select:none}
+.word{margin-right:.6em;color:var(--sub);white-space:nowrap;border-bottom:2px solid transparent;line-height:1.5;margin-block:.1em}
+.word span{transition:color .05s}
+.word .ok,.word.done span{color:var(--ink)}
+.word .bad{color:var(--err)}
+.word .x{color:var(--errx)}
+#box.hide.started .word:not(.done) span:not(.ok):not(.bad):not(.x){color:transparent;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--sub) 40%,transparent)}
+.word.err{border-bottom-color:color-mix(in srgb,var(--err) 55%,transparent)}
+.word.shake{animation:shake .22s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+#caret{position:absolute;left:0;top:0;width:3px;height:1.2em;margin-top:.15em;background:var(--main);border-radius:2px;transition:transform .09s linear;pointer-events:none}
+#caret.idle{animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+#blur{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:10px;font-size:16px;color:var(--ink);cursor:pointer;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);background:color-mix(in srgb,var(--bg) 30%,transparent)}
+#box.blurred #blur{display:flex}
+#hid{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0}
+@media(max-width:760px){#live{font-size:18px;gap:18px}}
+@media(prefers-reduced-motion:reduce){#words,#caret{transition:none}.word.shake{animation:none}}

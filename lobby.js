@@ -8,7 +8,7 @@
 //   lobby:settings {tr, len}  (host)
 //   race:start                (host)
 //   race:progress {wi}
-//   race:finish   {wpm, acc, time}
+//   race:finish   {acc, time}
 
 const MAX_PLAYERS = 6;
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -79,9 +79,10 @@ function startRace(io, socket) {
 }
 
 function pickPassage(settings) {
-  // TO_DO: load <tr>.js once per translation (files set window.VT_DATA; run them with vm and a fake window)
-  // TO_DO: port randomPassage()/label() from index.html (or move them to a shared module both sides load)
-  // TO_DO: return {label, text, tr}
+  // TO_DO: load and cache rows per translation: run <tr>.js in vm with context {window:{}}, rows = ctx.window.VT_DATA[tr]
+  // TO_DO: K = VTPassage.fromRows(rows) (require("./passage")); cache K and K.candidates(VTPassage.range(0, 65))
+  // TO_DO: p = K.randomPassage(cand, settings.len); text = VTPassage.shape(K.text(p.a, p.b), {punct:true, caps:true})
+  // TO_DO: return {label: p.label, text, tr}; keep text on the lobby so progress/finish can be checked against its word count
 }
 
 function reportProgress(io, socket, data) {

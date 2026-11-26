@@ -51,8 +51,16 @@ $("leaveBtn").addEventListener("click", () => {
 });
 
 // ---------- race ----------
+const engine = VTEngine.create(
+  { box: $("box"), words: $("words"), caret: $("caret"), input: $("hid"), live: $("live"), prog: $("lProg"), wpm: $("lWpm"), time: $("lTime") },
+  { word: onWordTyped, finish: onFinished }
+);
+// TO_DO: focus/blur handling for #box (see focusInput/syncBlur in index.html)
+// TO_DO: engine has no input lock yet; add one (e.g. engine.lock(bool)) so typing is ignored until the countdown ends
+
 socket.on("race:countdown", ({ startsAt, passage }) => {
   // TO_DO: set up `race`, render one progress track per player, show("vRace")
+  // TO_DO: engine.begin(passage.text) after vRace is visible (it measures line heights)
   // TO_DO: count down to startsAt (correct for clock skew, e.g. send server time too), then unlock typing
 });
 
@@ -60,12 +68,12 @@ socket.on("race:progress", ({ id, wi, wpm }) => {
   // TO_DO: update that player's track width (wi / word count) and wpm label
 });
 
-function onWordTyped(wi) {
-  // TO_DO: called by the typing engine after each correct word -> socket.emit("race:progress", {wi})
+function onWordTyped(wi, total) {
+  // TO_DO: socket.emit("race:progress", {wi})
 }
 
 function onFinished(result) {
-  // TO_DO: called by the typing engine at the end -> socket.emit("race:finish", {wpm, acc, time})
+  // TO_DO: socket.emit("race:finish", {acc, time}); the server works out wpm itself
 }
 
 socket.on("race:end", ({ standings }) => {
